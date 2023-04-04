@@ -1,0 +1,124 @@
+# Data Visualization of Spotify Songs from 1921-2021
+
+#### to answer the question of "What makes a song popular?" we will dive deeper using Spotify's Web API + data set from Kaggle to learn more about the song's audio features that lead to modern trends, emerging artists, and playlist recommendations
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df_data = pd.read_csv('tracks.csv')
+
+sorted_df = df_data.sort_values('popularity', ascending = False).head(100)
+sorted_two_df = df_data.sort_values('popularity', ascending = True)
+date = list(df_data.release_date)
+for i in range(len(date)):
+    date[i] = int(date[i][:4])
+
+### Here we are displaying the top 10 songs on Spotify based on the popularity ranking metrics
+
+df_data['Year'] = date
+df_pre90 = df_data[df_data.Year <= 1990]
+df_post_90 = df_data[df_data.Year > 1990]
+sorted_df.head(10)
+
+## Data Cleaning
+#### This is the first stage of exploring what kinds of data the data set has: name, durations, popularies, release dates, and other audio features.
+
+#### might also be best to covert miliseconds to minutes and seconds (easier to understand)
+
+sorted_df['duration_ms'].value_counts().index.unique()
+
+print(max(sorted_df['duration_ms'].value_counts().index.unique()), min(sorted_df['duration_ms'].value_counts().index.unique()))
+
+def minutes_seconds(x):
+    to_seconds = x/1000
+    to_minutes = to_seconds/60
+    return to_minutes
+
+sorted_df['duration_minutes'] = sorted_df['duration_ms'].map(minutes_seconds)
+sorted_df.head()
+
+sorted_df['time_signature'].value_counts().index.unique()
+
+sorted_df.columns
+
+### Displaying the top artists
+
+sorted_df['artists'][:10]
+
+sorted_df['artists'].unique()
+
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+### Here are the various categories: Spotify gives a score in each categories for each song. We can see that songs can be described in terms of Mood, Properties, and Context
+
+df_data.info()
+
+sorted_df_1 = sorted_df[['explicit','danceability','energy','mode','speechiness','acousticness','instrumentalness','liveness','valence']]
+sorted_two_df = sorted_two_df[['explicit','danceability','energy','mode','speechiness','acousticness','instrumentalness','liveness','valence']]
+
+### Let's take a look at the musical and audio features for each song:
+#### Visualizing the mean values of all the categories for the top 100 popular songs in a radar chart
+#### We can find that higher the "energetic" and "danceable" feature, the more popular the song becomes. 
+
+labels = list(sorted_df_1)[:]
+
+stats = sorted_df_1.mean().tolist()
+
+stats2 = sorted_two_df.mean().tolist()
+
+angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False)
+fig = plt.figure(figsize = (15,15))
+
+ax = fig.add_subplot(221, polar=True)
+ax.plot(angles, stats, 'o-', linewidth=3, label = "Popular", color = 'green')
+ax.fill(angles, stats, alpha=0.25, facecolor='green')
+ax.set_thetagrids(angles * 180/np.pi, labels, fontsize = 12)
+
+ax.set_rlabel_position(250)
+plt.yticks([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7], ["0.1", "0.2", "0.3", "0.4", "0.5","0.6", "0.7" ], size=12)
+plt.ylim(0,0.7)
+
+ax.plot(angles, stats2, 'o-', linewidth=2, label = "All The Dataset", color= 'red')
+ax.fill(angles, stats2, alpha=0.25, facecolor='red')
+ax.set_title('Mean Values')
+ax.grid(True)
+
+plt.legend(loc='best', bbox_to_anchor=(0.1,0.1))
+
+from collections import Counter
+import re
+sorted_df.artists.values[0] = sorted_df.artists.values[0].replace('[', '')
+sorted_df.artists.values[0] = sorted_df.artists.values[0].replace(']', '')
+sorted_df.artists.values[0]
+
+r1 = re.compile(r"\w{1,20}.\w{1,20}", re.MULTILINE | re.DOTALL)
+r = r1.findall(sorted_df.artists.values[0])
+list_top_100 = list(sorted_df.artists.values)
+all_artists = []
+for i in range(len(list_top_100)):
+    r1 = re.compile(r"\w{1,20}.\w{1,20}", re.MULTILINE | re.DOTALL)
+    r = r1.findall(list_top_100[i])
+    if len(r) > 0:
+        all_artists.append(r[0])
+c = Counter(all_artists)
+list(c)[:10]
+
+### Let's count the occurences of each artist:
+#### The top artist is Justin Bieber with 5 songs and Bad Bunny with 4 songs
+
+df_artists = pd.DataFrame(data = {'Name':list(c)[:20], 'Count':list(c.values())[:20]})
+fig = plt.figure(figsize = (10,8))
+sns.barplot(x = 'Name', y = 'Count', data = df_artists)
+plt.xticks(rotation=90)
+
+### Let's look at the trends of number of songs released in a particular year + yearly trends
+#### As the years go by, more song are produced which makes sense with the progressing technology, expanding number of artists and genres!
+
+plt.figure(figsize=(15,35))
+
+songs_year_graph = sns.countplot(y=df_data["Year"])
+
+plt.xlabel("Number of Songs")
+plt.title("Songs Released on Particular Year");
